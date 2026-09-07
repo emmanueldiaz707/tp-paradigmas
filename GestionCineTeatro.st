@@ -610,6 +610,22 @@
 
 	^obras</body>
 
+<body package="GestionCineTeatro" selector="mejoresPeliculasEnCartelera">mejoresPeliculasEnCartelera
+
+	"devuelve diccionario 'idObra'-&gt;'puntaje' donde cada obra tenga puntaje igual o mayor que el umbral"
+
+	| umbral d puntaje|
+	umbral := 7.
+	d := Dictionary new.
+	
+	obras do: [:o | 
+		puntaje := self puntajePromedioObra: o idObra.
+		((puntaje&gt;=umbral) and: [o enCartel])
+			ifTrue: [d at: (o idObra) put: puntaje].
+	].
+
+	^d.</body>
+
 <body package="GestionCineTeatro" selector="cancelarReserva:">cancelarReserva: idReserva
 
 	| unaReserva unaFuncion |
