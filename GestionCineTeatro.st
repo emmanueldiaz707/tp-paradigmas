@@ -255,6 +255,12 @@
 
 	^salas</body>
 
+<body package="GestionCineTeatro" selector="funcionesPorFecha:">funcionesPorFecha: unaFecha
+
+	| listaFunciones |
+	listaFunciones := funciones select: [:f | f fecha = unaFecha].
+	^listaFunciones.</body>
+
 <body package="GestionCineTeatro" selector="agregarFuncionObra:sala:fecha:horaInicio:precioEntrada:">agregarFuncionObra: idObra sala: idSala fecha: unaFecha horaInicio: unaHoraInicio precioEntrada: unPrecio
 
 	| unaFuncion |
