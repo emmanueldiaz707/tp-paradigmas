@@ -352,9 +352,30 @@
 
 	criticas := anObject</body>
 
-<body package="GestionCineTeatro" selector="ventas:">ventas: anObject
+<body package="GestionCineTeatro" selector="resumenIngresosReservasPorSocioEntre:Y:">resumenIngresosReservasPorSocioEntre: fechaInicio Y: fechaFin
 
-	ventas := anObject</body>
+	"devuelve total recaudado en reservas por cada socio"
+	
+	| ventasReservasIntervalo diccionario unaReserva unMonto |
+	
+	diccionario := Dictionary new. "idSocio -&gt; montoTotalSocio"
+	ventasReservasIntervalo := OrderedCollection new.
+	
+	ventasReservasIntervalo := ventas select: [:v | (v fechaVenta between: fechaInicio and: fechaFin) and:[v idReserva notNil]].
+	
+	ventasReservasIntervalo do: [:v | 
+		unaReserva := reservas detect: [:r | r idReserva = v idReserva].
+		unMonto := diccionario at: (unaReserva idSocio).
+		unMonto isNil ifTrue: [unMonto := 0].
+		diccionario at: (unaReserva idSocio) put: (unMonto + v monto).
+		].
+	^diccionario.
+	
+	
+	
+	"total := reservasIntervalo inject: 0 into: [:acum :v | acum + v monto]."
+	
+	"^total."</body>
 
 <body package="GestionCineTeatro" selector="criticas">criticas
 
@@ -454,6 +475,20 @@
 
 	^promedio.</body>
 
+<body package="GestionCineTeatro" selector="resumenIngresosTotalesEntre:Y:">resumenIngresosTotalesEntre: fechaInicio Y: fechaFin
+
+	"devuelve total recaudado, sin discriminar"
+	
+	| total ventasIntervalo |
+	
+	ventasIntervalo := OrderedCollection new.
+	
+	ventasIntervalo := ventas select: [:v | v fechaVenta between: fechaInicio and: fechaFin].
+	
+	total := ventasIntervalo inject: 0 into: [:acum :v | acum + v monto].
+	
+	^total.</body>
+
 <body package="GestionCineTeatro" selector="agregarCritico:NombreUsuario:">agregarCritico: idPersona NombreUsuario: unUsuario
 
 	"Da de alta (por primera vez) un critico"
@@ -475,6 +510,27 @@
 <body package="GestionCineTeatro" selector="reservas">reservas
 
 	^reservas</body>
+
+<body package="GestionCineTeatro" selector="resumenIngresosPorTipoVentaEntre:Y:">resumenIngresosPorTipoVentaEntre: fechaInicio Y: fechaFin
+
+	"devuelve total recaudado discriminado por ventas directas y por reservas"
+	
+	| totalVentaDirecta totalVentaReserva ventasDirectas ventasReservas d | 
+	
+	ventasDirectas := OrderedCollection new.
+	ventasReservas := OrderedCollection new.
+	d := Dictionary new.
+	
+	ventasDirectas := ventas select: [:v | v idReserva isNil].
+	ventasReservas := ventas select: [:v | v idReserva notNil].
+	
+	totalVentaDirecta := ventasDirectas inject: 0 into: [:acum :v | acum + v monto].
+	totalVentaReserva := ventasReservas inject: 0 into: [:acum :v | acum + v monto].
+	
+	d at: 'ventasDirectas' put: totalVentaDirecta.
+	d at: 'ventasReservas' put: totalVentaReserva.
+
+	^d</body>
 
 <body package="GestionCineTeatro" selector="buscarSocio:">buscarSocio: idSocio
 
