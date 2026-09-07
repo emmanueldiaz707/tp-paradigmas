@@ -352,6 +352,12 @@
 
 	criticas := anObject</body>
 
+<body package="GestionCineTeatro" selector="funcionesPorObra:">funcionesPorObra: idObra
+
+	| listaFunciones |
+	listaFunciones := funciones select: [:f | f idObra = idObra].
+	^listaFunciones.</body>
+
 <body package="GestionCineTeatro" selector="resumenIngresosReservasPorSocioEntre:Y:">resumenIngresosReservasPorSocioEntre: fechaInicio Y: fechaFin
 
 	"devuelve total recaudado en reservas por cada socio"
