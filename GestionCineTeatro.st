@@ -475,6 +475,8 @@
 	
 	criticasObra := criticas select: [:c | c idObra = idObra].
 	
+	"FALTA VALIDAR QUE SEA PELÍCULA Y NO OBRA DE TEATRO"
+	
 	sumatoria := criticasObra inject: 0 into: [:acum :c | acum + c puntaje].
 	
 	promedio := sumatoria / (criticasObra size).
