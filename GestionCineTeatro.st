@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <st-source>
-<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 de julio de 2016 on 12 de septiembre de 2026 at 10:52:46</time-stamp>
+<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 de julio de 2016 on 12 de septiembre de 2026 at 13:47:28</time-stamp>
 
 
 <component-created>
@@ -169,7 +169,7 @@
 <super>Core.Object</super>
 <private>false</private>
 <indexed-type>none</indexed-type>
-<inst-vars>idCritico resenia puntaje idPelicula </inst-vars>
+<inst-vars>idCritico resenia puntaje idPelicula id </inst-vars>
 <class-inst-vars></class-inst-vars>
 <imports></imports>
 <category></category>
@@ -177,19 +177,6 @@
 <package>GestionCineTeatro</package>
 </attributes>
 </class>
-
-<shared-variable>
-<name>fucionesEnHorario</name>
-<environment>Smalltalk</environment>
-<private>false</private>
-<constant>false</constant>
-<category>As yet unclassified</category>
-<attributes>
-<package>GestionCineTeatro</package>
-</attributes>
-</shared-variable>
-
-
 
 <methods>
 <class-id>AdministradorCineTeatro class</class-id> <category>instance creation</category>
@@ -232,7 +219,7 @@
 	"por cada función obtener ocupación y agregar a lista de ocupaciones"
 	funcionesObra do: [:f | 
 		cantidadButacasVendidas := f butacasOcupadas size. "total butacas ocupadas"
-		salaFuncion := salas detect: [:s | s idSala = f idSala]. "buscar sala de la función"
+		salaFuncion := salas detect: [:s | s id = f idSala]. "buscar sala de la función"
 		ocupaciones add: (cantidadButacasVendidas / (salaFuncion capacidadTotal)). "butacas ocupadas / capacidad total"
 		].
 	
@@ -349,7 +336,7 @@
 	"falta validación disponibilidad"
 
 	unaVenta := Venta new.
-	unaFuncion := funciones detect: [:f | f idFuncion = idFuncion].
+	unaFuncion := funciones detect: [:f | f id = idFuncion].
 	
 	"falta validar que sea socio"
 	montoTotal := self aplicarDescuento: (unaFuncion precioEntrada * butacasVenta size).
@@ -385,7 +372,7 @@
 	ventasReservasIntervalo := ventas select: [:v | (v fechaVenta between: fechaInicio and: fechaFin) and:[v idReserva notNil]].
 	
 	ventasReservasIntervalo do: [:v | 
-		unaReserva := reservas detect: [:r | r idReserva = v idReserva].
+		unaReserva := reservas detect: [:r | r id = v idReserva].
 		unMonto := diccionario at: (unaReserva idSocio).
 		unMonto isNil ifTrue: [unMonto := 0].
 		diccionario at: (unaReserva idSocio) put: (unMonto + v monto).
@@ -425,7 +412,7 @@
 	"falta validación disponibilidad"
 
 	unaVenta := Venta new.
-	unaFuncion := funciones detect: [:f | f idFuncion = idFuncion].
+	unaFuncion := funciones detect: [:f | f id = idFuncion].
 	
 	montoTotal := unaFuncion precioEntrada * butacasVenta size.
 	
@@ -443,8 +430,8 @@
 	| unaVenta unaReserva unaFuncion montoTotal |
 
 	unaVenta := Venta new.
-	unaReserva := reservas detect: [:r | r idReserva = idReserva].
-	unaFuncion := funciones detect: [:f | f idFuncion = unaReserva idFuncion].
+	unaReserva := reservas detect: [:r | r id = idReserva].
+	unaFuncion := funciones detect: [:f | f id = unaReserva idFuncion].
 	
 	
 	montoTotal := self aplicarDescuento: (unaFuncion precioEntrada * unaReserva butacasReservadas size).
@@ -488,7 +475,7 @@
 
 	| criticasObra sumatoria promedio |
 	
-	criticasObra := criticas select: [:c | c idObra = idObra].
+	criticasObra := criticas select: [:c | c idPelicula = idObra].
 	
 	"FALTA VALIDAR QUE SEA PELÍCULA Y NO OBRA DE TEATRO"
 	
@@ -688,7 +675,7 @@
 
 	| unCritico |
 	
-	unCritico := criticos select: [:c | c id = idCritico].
+	unCritico := criticos detect: [:c | c id = idCritico].
 	
 	unCritico nombreUsuario: unUsuario.</body>
 
@@ -716,8 +703,8 @@
 
 	| unaReserva unaFuncion |
 	
-	unaReserva := reservas detect: [:r | r idReserva = idReserva].
-	unaFuncion := funciones detect: [:f | f idFuncion = unaReserva idFuncion].
+	unaReserva := reservas detect: [:r | r id = idReserva].
+	unaFuncion := funciones detect: [:f | f id = unaReserva idFuncion].
 
 	"ARREGLAR CONDICION"
 	unaFuncion fecha - unaReserva fechaReserva &gt; 1
@@ -728,7 +715,7 @@
 	| porcentajeDescuento |
 	porcentajeDescuento := 20.
 
-	^unMonto - unMonto * (porcentajeDescuento/100).</body>
+	^unMonto - (unMonto * (porcentajeDescuento/100)).</body>
 
 <body package="GestionCineTeatro" selector="funciones:">funciones: anObject
 
@@ -1038,7 +1025,7 @@
 <body package="GestionCineTeatro" selector="admiteObra:listaObras:">admiteObra: idObra listaObras: listaObras
 
 	| unaObra |
-	unaObra := listaObras detect: [:o | o idObra = idObra].
+	unaObra := listaObras detect: [:o | o id = idObra].
 	^(self permitePeliculas and:[unaObra tipo = 'pelicula']) or: [self permiteTeatro and:[unaObra tipo = 'obra de teatro']].</body>
 
 <body package="GestionCineTeatro" selector="permiteTeatro:">permiteTeatro: anObject
