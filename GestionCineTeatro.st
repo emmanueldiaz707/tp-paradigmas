@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <st-source>
-<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 de julio de 2016 on 6 de septiembre de 2026 at 21:09:23</time-stamp>
+<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 de julio de 2016 on 12 de septiembre de 2026 at 10:52:46</time-stamp>
 
 
 <component-created>
@@ -19,7 +19,7 @@
 <super>Core.Object</super>
 <private>false</private>
 <indexed-type>none</indexed-type>
-<inst-vars>id idObra idSala fecha horaInicio precioEntrada reservas ventas </inst-vars>
+<inst-vars>id idObra idSala fecha horaInicio precioEntrada reservas ventas fechaHoraInicio </inst-vars>
 <class-inst-vars></class-inst-vars>
 <imports></imports>
 <category></category>
@@ -635,17 +635,20 @@
 	
 	salas add: unaSala.</body>
 
-<body package="GestionCineTeatro" selector="salaLibre:fechaInicio:horaInicio:fechaFinal:horaFinal:">salaLibre: idSala fechaInicio: unaFechaInicio horaInicio: unaHoraInicio fechaFinal: unaFechaFinal horaFinal: unaHoraFinal
+<body package="GestionCineTeatro" selector="salaLibre:fechaHoraInicio:fechaHoraFinal:">salaLibre: idSala fechaHoraInicio: unaFechaHoraInicio fechaHoraFinal: unaFechaHoraFinal
 
-	| funcionesSala  funcionesEnFechas funcionesEnHorario |
+	| funcionesSala |
 	
 	funcionesSala := funciones select: [:f | f idSala = idSala].
 	
-	funcionesEnFechas := funcionesSala select: [:f | f fecha between: unaFechaInicio and: unaFechaFinal].
-	
-	fucionesEnHorario := funcionesEnFechas select: [:f | (f horaInicio between: unaHoraInicio and: unaHoraFinal) or: [f horaFin between: unaHoraInicio and: unaHoraFinal]].
-	
-	^funcionesEnHorario isEmpty.</body>
+	funcionesSala do: [:f | 
+		|  inicioF finF obra |
+		obra := obras detect: [:o | o id = f idObra].
+		inicioF := f fechaHoraInicio.
+		finF := inicioF addSeconds: (obra duracion * 60).
+		((unaFechaHoraInicio &lt; finF) and: [inicioF &lt; unaFechaHoraFinal])
+			ifTrue: [^false]].
+	^true</body>
 
 <body package="GestionCineTeatro" selector="eliminarCritico:">eliminarCritico: idCritico
 
@@ -772,7 +775,7 @@
 	^clasificacion</body>
 
 <body package="GestionCineTeatro" selector="duracion">duracion
-
+	"duración en minutos"
 	^duracion</body>
 
 <body package="GestionCineTeatro" selector="descripcion">descripcion
@@ -808,7 +811,7 @@
 	elenco := anObject</body>
 
 <body package="GestionCineTeatro" selector="duracion:">duracion: anObject
-
+	"duración en minutos"
 	duracion := anObject</body>
 
 <body package="GestionCineTeatro" selector="enCartel:">enCartel: anObject
@@ -966,6 +969,16 @@
 <body package="GestionCineTeatro" selector="reservas:">reservas: anObject
 
 	reservas := anObject</body>
+
+<body package="GestionCineTeatro" selector="fechaHoraInicio">fechaHoraInicio
+
+	^Timestamp fromDate: self fecha andTime: self horaInicio</body>
+
+<body package="GestionCineTeatro" selector="fechaHoraInicio:">fechaHoraInicio: anObject
+
+	self fecha: anObject asDate.
+	self horaInicio: anObject asTime.
+	"fechaHoraInicio := anObject"</body>
 
 <body package="GestionCineTeatro" selector="fecha">fecha
 
