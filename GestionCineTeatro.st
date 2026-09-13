@@ -444,6 +444,23 @@
 		listaSociosDeudores add: unSocio.
 		].
 	^listaSociosDeudores</body>
+
+<body package="GestionCineTeatro" selector="mejoresPeliculasCantidad:">mejoresPeliculasCantidad: cantidad
+
+	| listaOrdenadaPeliculas limite |
+	
+	listaOrdenadaPeliculas := SortedCollection sortBlock: [:a :b | (self puntajePromedioObra: a idObra) &gt; (self puntajePromedioObra: b idObra)].
+	
+	obras do: [:o | 
+		o esPelicula
+			ifTrue: [listaOrdenadaPeliculas add: o].
+		].
+	
+	limite := listaOrdenadaPeliculas size.
+	
+	limite&lt;cantidad
+		ifTrue:  [^listaOrdenadaPeliculas copyFrom: 1 to: limite]
+		ifFalse: [^listaOrdenadaPeliculas copyFrom: 1 to: cantidad]</body>
 <body package="GestionCineTeatro" selector="criticas">criticas
 
 	^criticas</body>
