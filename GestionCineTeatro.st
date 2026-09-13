@@ -424,6 +424,26 @@
 		].
 
 	^func</body>
+
+<body package="GestionCineTeatro" selector="sociosDeudores">sociosDeudores
+	
+	"devuelve conjunto de objetos Socio con reservas sin pagar"
+	
+	| listaIdSocio listaSociosDeudores |
+	listaIdSocio := OrderedSet new.
+	listaSociosDeudores := OrderedSet new.
+	
+	reservas do: [:r | 
+		((r estaCancelada not) and: [r estaConfirmadaEn: ventas not]) "si no está cancelada ni confirmada"
+			ifTrue: [listaIdSocio add: [r idSocio]]
+		].
+	
+	listaIdSocio do: [:i | 
+		| unSocio |
+		unSocio := socios detect: [:s | s id = i].
+		listaSociosDeudores add: unSocio.
+		].
+	^listaSociosDeudores</body>
 <body package="GestionCineTeatro" selector="criticas">criticas
 
 	^criticas</body>
