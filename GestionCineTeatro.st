@@ -461,6 +461,15 @@
 	limite&lt;cantidad
 		ifTrue:  [^listaOrdenadaPeliculas copyFrom: 1 to: limite]
 		ifFalse: [^listaOrdenadaPeliculas copyFrom: 1 to: cantidad]</body>
+
+<body package="GestionCineTeatro" selector="listaObrasDirector:">listaObrasDirector: nombreDirector
+
+	^obras select: [:o | o director includes: nombreDirector].</body>
+
+<body package="GestionCineTeatro" selector="listaObrasActor:">listaObrasActor: nombreActor
+
+	^obras select: [:o | o elenco includes: nombreActor].</body>
+
 <body package="GestionCineTeatro" selector="criticas">criticas
 
 	^criticas</body>
