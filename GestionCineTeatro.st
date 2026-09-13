@@ -470,6 +470,33 @@
 
 	^obras select: [:o | o elenco includes: nombreActor].</body>
 
+<body package="GestionCineTeatro" selector="recaudacionObra:">recaudacionObra: idObra
+
+	| funcionesObra ventasObra |  
+	
+	ventasObra := OrderedCollection new.
+	
+	funcionesObra := self funcionesPorObra: idObra.
+	
+	funcionesObra do: [:f | 
+		ventasObra addAll: (ventas select: [:v | v idFuncion = f id]) ].
+	
+	^ventasObra inject: 0 into: [:acum :v | acum + v monto].</body>
+
+<body package="GestionCineTeatro" selector="mejoresObrasRecaudacion:">mejoresObrasRecaudacion: cantidadObras
+
+	| listaOrdenadaObras limite |
+	
+	listaOrdenadaObras := SortedCollection sortBlock: [:a :b | (self recaudacionObra: a idObra) &gt; (self recaudacionObra: b idObra)].
+	
+	listaOrdenadaObras addAll: obras.
+		
+	limite := listaOrdenadaObras size.
+	
+	limite&lt;cantidadObras
+		ifTrue:  [^listaOrdenadaObras copyFrom: 1 to: limite]
+		ifFalse: [^listaOrdenadaObras copyFrom: 1 to: cantidadObras]</body>
+
 <body package="GestionCineTeatro" selector="criticas">criticas
 
 	^criticas</body>
