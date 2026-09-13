@@ -385,6 +385,17 @@
 	
 	"^total."</body>
 
+<body package="GestionCineTeatro" selector="modificarPersona:">modificarPersona: personaNuevo
+
+	| personaViejo |
+	personaViejo := personas detect: [:p | p id = personaNuevo id].
+	
+	personaViejo celular: personaNuevo celular.
+	personaViejo domicilio: personaNuevo domicilio.
+	personaViejo email: personaNuevo email.
+	personaViejo nombre: personaNuevo nombre.
+	personaViejo sexo: personaNuevo sexo.</body>
+
 <body package="GestionCineTeatro" selector="criticas">criticas
 
 	^criticas</body>
