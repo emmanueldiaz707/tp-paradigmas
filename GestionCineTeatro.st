@@ -396,6 +396,34 @@
 	personaViejo nombre: personaNuevo nombre.
 	personaViejo sexo: personaNuevo sexo.</body>
 
+<body package="GestionCineTeatro" selector="funcionesAgotadasFuturas">funcionesAgotadasFuturas
+
+	"devuelve colección de funciones agotadas desde hoy"
+	| fechaHoy func unaSala |
+	func := OrderedCollection new.
+	fechaHoy := Date today.
+	
+	funciones do: [:f | 
+		unaSala := salas detect: [:s | s id = f idSala].
+		((f estaAgotadaEn: unaSala) and: [f fecha&gt;=fechaHoy])
+			ifTrue: [func add: f].
+		].
+
+	^func</body>
+
+<body package="GestionCineTeatro" selector="funcionesAgotadasHistorico">funcionesAgotadasHistorico
+
+	"devuelve colección de funciones agotadas desde hoy"
+	| func unaSala |
+	func := OrderedCollection new.
+	
+	funciones do: [:f | 
+		unaSala := salas detect: [:s | s id = f idSala].
+		(f estaAgotadaEn: unaSala)
+			ifTrue: [func add: f].
+		].
+
+	^func</body>
 <body package="GestionCineTeatro" selector="criticas">criticas
 
 	^criticas</body>
