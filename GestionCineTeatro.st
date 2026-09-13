@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <st-source>
-<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 de julio de 2016 on 12 de septiembre de 2026 at 13:47:28</time-stamp>
+<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 de julio de 2016 on 12 de septiembre de 2026 at 21:24:51</time-stamp>
 
 
 <component-created>
@@ -788,6 +788,14 @@
 <body package="GestionCineTeatro" selector="enCartel">enCartel
 
 	^enCartel</body>
+
+<body package="GestionCineTeatro" selector="esPelicula">esPelicula
+
+	^tipo='pelicula'</body>
+
+<body package="GestionCineTeatro" selector="esObra">esObra
+
+	^tipo='obra de teatro'</body>
 
 <body package="GestionCineTeatro" selector="elenco">elenco
 
@@ -1585,6 +1593,14 @@
 <body package="GestionCineTeatro" selector="idPelicula">idPelicula
 
 	^idPelicula</body>
+
+<body package="GestionCineTeatro" selector="id">id
+
+	^id</body>
+
+<body package="GestionCineTeatro" selector="id:">id: anObject
+
+	id := anObject</body>
 
 <body package="GestionCineTeatro" selector="resenia">resenia
 
