@@ -701,14 +701,19 @@
 
 <body package="GestionCineTeatro" selector="cancelarReserva:">cancelarReserva: idReserva
 
-	| unaReserva unaFuncion |
+	| unaReserva unaFuncion ahora|
 	
 	unaReserva := reservas detect: [:r | r id = idReserva].
 	unaFuncion := funciones detect: [:f | f id = unaReserva idFuncion].
 
-	"ARREGLAR CONDICION"
-	unaFuncion fecha - unaReserva fechaReserva &gt; 1
-		ifTrue: [unaReserva fechaCancelacion: Date today.]</body>
+	ahora := Timestamp now.
+	
+	(unaFuncion fechaHoraInicio - ahora) days &gt;=1
+		ifTrue: [
+			unaReserva fechaCancelacion: ahora asDate.
+			^true. "operación exitosa"
+			]
+		ifFalse: [^false] "error"</body>
 
 <body package="GestionCineTeatro" selector="aplicarDescuento:">aplicarDescuento: unMonto
 
