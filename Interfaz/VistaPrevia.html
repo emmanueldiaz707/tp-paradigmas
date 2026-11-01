@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vista previa Cine/Teatro</title>
+<style>
+  :root{
+    --desk:#3a6ea5; --face:#d4d0c8; --hi:#ffffff; --sh:#808080; --dk:#404040;
+    --title1:#0a246a; --title2:#a6caf0; --sel:#0a246a; --ink:#000;
+    --panel:#1e1e1e; --panel-ink:#d4d4d4;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--desk);font:12px Tahoma,"Segoe UI",Arial,sans-serif;color:var(--ink)}
+  header{background:#f4f4f4;padding:10px 16px;border-bottom:1px solid #999}
+  header h1{margin:0 0 4px;font-size:16px}
+  header p{margin:0;max-width:1100px;line-height:1.45}
+  .tabs{display:flex;flex-wrap:wrap;gap:4px;padding:10px 16px 0}
+  .tabs button{font:inherit;padding:5px 10px;border:1px solid #234;background:#cfd8e6;cursor:pointer;border-radius:3px 3px 0 0}
+  .tabs button.on{background:var(--face);font-weight:bold}
+  .stage{padding:0 16px 16px;overflow-x:auto}
+  .win{display:inline-block;background:var(--face);border:2px solid;border-color:var(--hi) var(--dk) var(--dk) var(--hi);box-shadow:2px 2px 0 #0004}
+  .titlebar{background:linear-gradient(90deg,var(--title1),var(--title2));color:#fff;font-weight:bold;padding:3px 6px;display:flex;justify-content:space-between}
+  .titlebar small{font-weight:normal;opacity:.85}
+  .canvas{position:relative}
+  .c{position:absolute}
+  .lbl{white-space:nowrap}
+  input.c{border:2px inset #eee;background:#fff;font:inherit;padding:1px 3px}
+  button.c{font:inherit;background:var(--face);border:2px solid;border-color:var(--hi) var(--dk) var(--dk) var(--hi);cursor:pointer}
+  button.c:active{border-color:var(--dk) var(--hi) var(--hi) var(--dk)}
+  .list{background:#fff;border:2px inset #eee;overflow:auto;user-select:none}
+  .list div{padding:0 3px;white-space:nowrap;cursor:default;line-height:16px}
+  .list div.sel{background:var(--sel);color:#fff}
+  textarea.c{border:2px inset #eee;background:#fff;resize:none;font:inherit;padding:2px 4px}
+  textarea.fixed{font:12px Consolas,"Courier New",monospace}
+  .chk{display:flex;align-items:center;gap:4px;white-space:nowrap}
+  .grp{border:1px solid var(--sh);box-shadow:1px 1px 0 var(--hi) inset}
+  .grp span{position:absolute;top:-8px;left:8px;background:var(--face);padding:0 3px}
+  .log{margin:0 16px 16px;background:var(--panel);color:var(--panel-ink);border-radius:4px;max-width:1300px}
+  .log h2{margin:0;padding:8px 12px;font-size:13px;border-bottom:1px solid #444;display:flex;justify-content:space-between}
+  .log h2 button{font:inherit;background:#333;color:#ddd;border:1px solid #555;cursor:pointer}
+  .log pre{margin:0;padding:10px 12px;max-height:280px;overflow:auto;font:12px Consolas,monospace;white-space:pre-wrap}
+  .log .m{color:#9cdcfe}.log .k{color:#6a9955}
+  .modal{position:fixed;inset:0;background:#0003;display:none;align-items:center;justify-content:center}
+  .modal.on{display:flex}
+  .modal .win{min-width:300px;max-width:520px}
+  .modal .body{padding:16px;white-space:pre-wrap}
+  .modal .btns{padding:0 16px 14px;display:flex;justify-content:center;gap:8px}
+  .modal .btns button{position:static;min-width:80px;padding:3px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Vista previa de la interfaz — GestionCineTeatroUI</h1>
+  <p>Así se verían las ventanas de <b>Interfaz/GestionCineTeatroUI.st</b> en VisualWorks. Cada control está ubicado con las mismas coordenadas que su <code>windowSpec</code>.
+  Probá los botones: abajo aparece el <b>código Smalltalk</b> que ejecuta cada uno. <i>La vista previa simula cómo debería comportarse el modelo una vez corregido</i> (por ejemplo, en tu código actual las películas y obras nuevas no se agregan a <code>obras</code>).</p>
+</header>
+<div class="tabs" id="tabs"></div>
+<div class="stage" id="stage"></div>
+<section class="log">
+  <h2><span>Código Smalltalk ejecutado</span><button onclick="logEl.innerHTML=''">Limpiar</button></h2>
+  <pre id="log"></pre>
+</section>
+<div class="modal" id="modal"><div class="win"><div class="titlebar">VisualWorks</div><div class="body" id="modalText"></div><div class="btns" id="modalBtns"></div></div></div>
+
+<script>
+/* ===================== Modelo simulado (equivale a AdministradorCineTeatro) ===================== */
+const A={personas:[],socios:[],criticos:[],obras:[],criticas:[],salas:[],funciones:[],reservas:[],ventas:[]};
+const nextId=c=>c.reduce((m,e)=>Math.max(m,e.id),0)+1;
+const hoy=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const addDays=(d,n)=>{const r=new Date(d);r.setDate(r.getDate()+n);return r};
+const fmtD=d=>d?`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`:'nil';
+const parseD=s=>{const m=String(s).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(!m)throw new Error('fecha invalida (use dd/mm/aaaa)');return new Date(+m[3],+m[2]-1,+m[1])};
+const parseN=s=>{const n=Number(String(s).trim());if(String(s).trim()===''||isNaN(n))throw new Error('numero invalido');return n};
+const sameDay=(a,b)=>a.getTime()===b.getTime();
+const st=s=>`'${String(s).replace(/'/g,"''")}'`;
+const stColl=a=>`(OrderedCollection new ${a.map(x=>'add: '+st(x)).join('; ')}${a.length?'; ':''}yourself)`;
+const funcStart=f=>{const [h,m]=f.hora.split(':').map(Number);const d=new Date(f.fecha);d.setHours(h,m||0);return d};
+const ocupadasDe=f=>{const o=[];A.ventas.filter(v=>v.idFuncion===f.id).forEach(v=>o.push(...v.butacas));A.reservas.filter(r=>r.idFuncion===f.id&&!r.fechaCancelacion).forEach(r=>o.push(...r.butacas));return o};
+const confirmada=r=>A.ventas.some(v=>v.idReserva===r.id);
+const promedio=id=>{const c=A.criticas.filter(c=>c.idPelicula===id);return c.length?c.reduce((a,c)=>a+c.puntaje,0)/c.length:0};
+const recaudacion=id=>A.ventas.filter(v=>{const f=A.funciones.find(f=>f.id===v.idFuncion);return f&&f.idObra===id}).reduce((a,v)=>a+v.monto,0);
+const salaDe=f=>A.salas.find(s=>s.id===f.idSala);
+const salaLibre=(idSala,ini,fin)=>!A.funciones.filter(f=>f.idSala===idSala).some(f=>{const o=A.obras.find(o=>o.id===f.idObra);const i=funcStart(f);const e=new Date(i.getTime()+(o?o.duracion:0)*60000);return ini<e&&i<fin});
+
+/* textos de las listas (igual que en VentanaCineTeatro) */
+const nomPer=id=>{const p=A.personas.find(p=>p.id===id);return p?p.nombre:`(persona ${id})`};
+const titObra=id=>{const o=A.obras.find(o=>o.id===id);return o?o.titulo:`(obra ${id})`};
+const tPer=p=>`${p.id} - ${p.nombre}   DNI: ${p.dni}`;
+const tSoc=s=>`Socio ${s.id} - ${nomPer(s.idPersona)}  (${s.activo?'activo':'inactivo'})`;
+const tCri=c=>`${c.id} - ${c.usuario}  (${nomPer(c.idPersona)})`;
+const tObra=o=>`${o.id} - ${o.titulo} (${o.tipo}, ${o.duracion} min)  ${o.enCartel?'[EN CARTEL]':'[fuera de cartel]'}`;
+const tSala=s=>`${s.id} - ${s.nombre}  (${s.butacas.length} butacas${s.peliculas?', cine':''}${s.teatro?', teatro':''})`;
+const tFun=f=>{const s=salaDe(f);return `${f.id} - ${titObra(f.idObra)} | ${s?s.nombre:'?'} | ${fmtD(f.fecha)} ${f.hora} | $${f.precio}`};
+const tBut=b=>`${b.fila}-${b.numero}`;
+const tRes=r=>`Reserva ${r.id} - Socio ${r.idSocio} - Funcion ${r.idFuncion} - Butacas: ${r.butacas.map(tBut).join(', ')} - ${r.fechaCancelacion?'CANCELADA':confirmada(r)?'PAGADA':'PENDIENTE DE PAGO'}`;
+const plano=(sala,ocup)=>{let t='      PANTALLA / ESCENARIO\n\n';const maxY=Math.max(0,...sala.butacas.map(b=>b.y));for(let y=1;y<=maxY;y++){const f=sala.butacas.filter(b=>b.y===y).sort((a,b)=>a.x-b.x);if(f.length)t+=f[0].fila+'  ';t+=f.map(b=>ocup.includes(b)?'[X]':'[ ]').join('')+'\n'}return t+'\n[ ] libre    [X] ocupada'};
+const lineas=a=>a.length?a.join('\n'):'(sin resultados)';
+
+/* ===================== API del administrador (cada llamada registra su código) ===================== */
+const adm={
+  agregarPersona(p){A.personas.push(p)},
+  agregarSocio(idP){A.socios.push({id:A.socios.length+1,idPersona:idP,fechaAlta:hoy(),activo:true})},
+  agregarCritico(idP,u){A.criticos.push({id:A.criticos.length+1,idPersona:idP,usuario:u,fechaAlta:hoy()})},
+  agregarSala(n,pp,pt,filas,cols){const b=[];for(let f=1;f<=filas;f++)for(let c=1;c<=cols;c++)b.push({fila:String.fromCharCode(64+f),numero:c,x:c,y:f});A.salas.push({id:A.salas.length+1,nombre:n,peliculas:pp,teatro:pt,butacas:b})},
+  agregarObra(tipo,t,d,dur,cl,el,dir){A.obras.push({id:A.obras.length+1,titulo:t,descripcion:d,duracion:dur,clasificacion:cl,elenco:el,director:dir,tipo,enCartel:true})},
+  agregarFuncion(idO,idS,fecha,hora,precio){A.funciones.push({id:A.funciones.length+1,idObra:idO,idSala:idS,fecha,hora,precio})},
+  nuevaCritica(idO,idC,res,p){A.criticas.push({id:A.criticas.length+1,idPelicula:idO,idCritico:idC,resenia:res,puntaje:p})},
+};
+
+/* ===================== Log ===================== */
+const logEl=document.getElementById('log');
+function code(metodo,...lines){
+  const div=document.createElement('div');
+  div.innerHTML=`<span class="k">"${metodo}"</span>\n`+lines.map(l=>`<span class="m">${l.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</span>`).join('\n')+'\n\n';
+  logEl.prepend(div);
+}
+
+/* ===================== Dialogos (Dialog warn: / Dialog confirm:) ===================== */
+const modal=document.getElementById('modal');
+function warn(msg){return new Promise(r=>{document.getElementById('modalText').textContent=msg;const b=document.getElementById('modalBtns');b.innerHTML='';const ok=document.createElement('button');ok.textContent='OK';ok.className='c';ok.onclick=()=>{modal.classList.remove('on');r()};b.append(ok);modal.classList.add('on');ok.focus()})}
+function confirmar(msg){return new Promise(r=>{document.getElementById('modalText').textContent=msg;const b=document.getElementById('modalBtns');b.innerHTML='';[['Si',true],['No',false]].forEach(([t,v])=>{const x=document.createElement('button');x.textContent=t;x.className='c';x.onclick=()=>{modal.classList.remove('on');r(v)};b.append(x)});modal.classList.add('on')})}
+class Aviso extends Error{}
+const fallar=m=>{throw new Aviso(m)};
+
+/* ===================== Definicion de ventanas (mismas coordenadas que los windowSpec) ===================== */
+const L=(x,y,text)=>({t:'label',x,y,text});
+const I=(r,m)=>({t:'input',r,m});
+const B=(r,label,a)=>({t:'button',r,label,a});
+const LS=(r,m,multi)=>({t:'list',r,m,multi});
+const CK=(x,y,label,m)=>({t:'check',x,y,label,m});
+const RB=(x,y,label,m,v)=>({t:'radio',x,y,label,m,v});
+const TX=(r,m,fixed)=>({t:'text',r,m,fixed});
+const GB=(r,label)=>({t:'group',r,label});
+const sel=(s,lista,col)=>{const i=s.l[lista].sel;return i>=0&&i<col.length?col[i]:null};
+
+const WIN={
+principal:{tab:'Menu principal',cls:'CineTeatroPrincipal',label:'Gestion Cine / Teatro',w:430,h:440,
+  comps:[L(20,12,'Menu principal'),B([20,40,205,70],'Personas','abrirPersonas'),B([20,75,205,105],'Socios y criticos','abrirSocios'),B([20,110,205,140],'Peliculas / Obras','abrirObras'),B([20,145,205,175],'Salas','abrirSalas'),B([20,180,205,210],'Funciones','abrirFunciones'),B([20,215,205,245],'Reservas y ventas','abrirReservasVentas'),B([20,250,205,280],'Consultas / listados','abrirConsultas'),
+    B([225,40,410,70],'Cargar datos de prueba','cargarDatosPrueba'),B([225,75,410,105],'Guardar en disco','guardarDatos'),B([225,110,410,140],'Leer desde disco','cargarDatos'),B([225,145,410,175],'Actualizar resumen','actualizar'),L(20,295,'Resumen'),TX([20,318,410,425],'estado')],
+  init(s){s.f.estado=''},
+  refresh(s){s.f.estado=`Personas: ${A.personas.length}\nSocios: ${A.socios.length}    Criticos: ${A.criticos.length}\nPeliculas/obras: ${A.obras.length}    Criticas: ${A.criticas.length}\nSalas: ${A.salas.length}    Funciones: ${A.funciones.length}\nReservas: ${A.reservas.length}    Ventas: ${A.ventas.length}`},
+  actions:{
+    abrirPersonas:()=>abrir('personas'),abrirSocios:()=>abrir('socios'),abrirObras:()=>abrir('obras'),abrirSalas:()=>abrir('salas'),abrirFunciones:()=>abrir('funciones'),abrirReservasVentas:()=>abrir('reservas'),abrirConsultas:()=>abrir('consultas'),
+    actualizar(){},
+    async cargarDatosPrueba(){
+      [['Juan Perez',30111222,'M','San Martin 123'],['Ana Gomez',28999888,'F','Belgrano 456'],['Luis Diaz',35123456,'M','Mitre 789'],['Sofia Ruiz',40222333,'F','Rivadavia 1010']].forEach(d=>adm.agregarPersona({id:nextId(A.personas),nombre:d[0],dni:d[1],sexo:d[2],domicilio:d[3],fechaNacimiento:addDays(hoy(),-12000),email:'contacto@mail.com',celular:'3415555555'}));
+      adm.agregarSocio(1);adm.agregarSocio(3);adm.agregarCritico(2,'ana_critica');
+      adm.agregarSala('Sala 1',true,false,5,8);adm.agregarSala('Sala Teatro',false,true,4,6);
+      adm.agregarObra('pelicula','El Padrino','Drama',175,'+16',['Marlon Brando','Al Pacino'],['Francis Ford Coppola']);
+      adm.agregarObra('obra de teatro','Esperando la carroza','Comedia',90,'ATP',['China Zorrilla'],['Alejandro Doria']);
+      adm.agregarFuncion(1,1,addDays(hoy(),2),'20:00',5000);adm.agregarFuncion(2,2,addDays(hoy(),3),'21:00',7000);
+      adm.nuevaCritica(1,1,'Una obra maestra',10);
+      code('CineTeatroPrincipal>>cargarDatosPrueba (resumen)',"p := Persona new. p id: 1; nombre: 'Juan Perez'; dni: 30111222; ... .","admin agregarPersona: p.   \"x4\"","admin agregarSocio: 1.","admin agregarCritico: 2 NombreUsuario: 'ana_critica'.","admin agregarSalaNombre: 'Sala 1' permitePeliculas: true permteTeatro: false filasButacas: 5 columnasButacas: 8.","admin agregarPeliculaTitulo: 'El Padrino' descripcion: 'Drama' duracion: 175 clasificacion: '+16' elenco: ... director: ... .","admin agregarFuncionObra: 1 sala: 1 fecha: (Date today addDays: 2) horaInicio: (Time fromSeconds: 20 * 3600) precioEntrada: 5000.","admin nuevaCriticaPara: 1 De: 1 resenia: 'Una obra maestra' puntaje: 10.");
+      await warn('Datos de prueba cargados');
+    },
+    async guardarDatos(){code('CineTeatroPrincipal>>guardarDatos',"bos := BinaryObjectStorage onNew: 'cineteatro.bos' asFilename writeStream.","[bos nextPut: admin] ensure: [bos close].");await warn('Datos guardados en cineteatro.bos\n(en la vista previa no se guarda nada)')},
+    async cargarDatos(){code('CineTeatroPrincipal>>cargarDatos',"bos := BinaryObjectStorage onOld: 'cineteatro.bos' asFilename readStream.","[admin := bos next] ensure: [bos close].");await warn('En VisualWorks esto reemplaza al administrador por el guardado en disco.')}
+  }},
+
+personas:{tab:'Personas',cls:'VentanaPersonas',label:'Personas',w:640,h:470,
+  comps:[L(20,20,'Nombre'),I([110,18,300,40],'nombre'),L(20,50,'DNI'),I([110,48,300,70],'dni'),L(20,80,'Fecha nac.'),I([110,78,300,100],'fechaNacimiento'),L(20,110,'Sexo'),I([110,108,300,130],'sexo'),L(20,140,'Domicilio'),I([110,138,300,160],'domicilio'),L(20,170,'Email'),I([110,168,300,190],'email'),L(20,200,'Celular'),I([110,198,300,220],'celular'),
+    B([20,240,110,268],'Agregar','agregar'),B([115,240,205,268],'Modificar','modificar'),B([210,240,300,268],'Eliminar','eliminar'),B([20,275,110,303],'Limpiar','limpiar'),L(320,8,'Personas registradas'),LS([320,30,620,450],'listaPersonas')],
+  init(s){Object.assign(s.f,{nombre:'',dni:'',fechaNacimiento:'',sexo:'',domicilio:'',email:'',celular:''})},
+  refresh(s){s.l.listaPersonas.items=A.personas.map(tPer)},
+  onSel:{listaPersonas(s){const p=sel(s,'listaPersonas',A.personas);if(p)Object.assign(s.f,{nombre:p.nombre,dni:p.dni,fechaNacimiento:fmtD(p.fechaNacimiento),sexo:p.sexo,domicilio:p.domicilio,email:p.email,celular:p.celular})}},
+  actions:{
+    agregar(s){if(!s.f.nombre)fallar('Ingrese el nombre');const p={id:nextId(A.personas),...campos(s)};adm.agregarPersona(p);
+      code('VentanaPersonas>>agregar','p := Persona new.',`p id: (self siguienteIdDe: admin personas).   "= ${p.id}"`,`p nombre: ${st(p.nombre)}; dni: ${p.dni}; sexo: ${st(p.sexo)}; ... .`,'admin agregarPersona: p.')},
+    modificar(s){const o=sel(s,'listaPersonas',A.personas);if(!o)fallar('Seleccione una persona de la lista');Object.assign(o,campos(s));code('VentanaPersonas>>modificar',`p := Persona new. p id: ${o.id}.`,'self cargarCamposEn: p.','admin modificarPersona: p.')},
+    async eliminar(s){const o=sel(s,'listaPersonas',A.personas);if(!o)fallar('Seleccione una persona de la lista');if(!await confirmar(`Eliminar a ${o.nombre}?`))return;A.personas.splice(A.personas.indexOf(o),1);s.l.listaPersonas.sel=-1;code('VentanaPersonas>>eliminar','admin eliminarPersona: p.')},
+    limpiar(s){s.l.listaPersonas.sel=-1;this.__init(s)}
+  }},
+
+socios:{tab:'Socios y criticos',cls:'VentanaSocios',label:'Socios y criticos',w:760,h:480,
+  comps:[L(20,8,'Personas'),LS([20,30,360,230],'listaPersonas'),B([20,240,220,268],'Dar de alta como socio','darAltaSocio'),L(20,285,'Usuario critico'),I([130,283,360,305],'usuario'),B([20,315,220,343],'Registrar como critico','registrarCritico'),
+    L(380,8,'Socios'),LS([380,30,740,200],'listaSocios'),B([380,208,500,236],'Activar','activarSocio'),B([505,208,625,236],'Desactivar','desactivarSocio'),L(380,250,'Criticos'),LS([380,272,740,420],'listaCriticos'),B([380,428,555,456],'Cambiar usuario','cambiarUsuario'),B([565,428,740,456],'Eliminar critico','eliminarCritico')],
+  init(s){s.f.usuario=''},
+  refresh(s){s.l.listaPersonas.items=A.personas.map(tPer);s.l.listaSocios.items=A.socios.map(tSoc);s.l.listaCriticos.items=A.criticos.map(tCri)},
+  actions:{
+    darAltaSocio(s){const p=sel(s,'listaPersonas',A.personas);if(!p)fallar('Seleccione una persona');if(A.socios.some(x=>x.idPersona===p.id))fallar('Esa persona ya es socio');adm.agregarSocio(p.id);code('VentanaSocios>>darAltaSocio',`admin agregarSocio: ${p.id}.`)},
+    activarSocio(s){const x=sel(s,'listaSocios',A.socios);if(!x)fallar('Seleccione un socio');x.activo=true;code('VentanaSocios>>activarSocio',`admin activarSocio: ${x.id}.`)},
+    desactivarSocio(s){const x=sel(s,'listaSocios',A.socios);if(!x)fallar('Seleccione un socio');x.activo=false;code('VentanaSocios>>desactivarSocio',`admin desactivarSocio: ${x.id}.`)},
+    registrarCritico(s){const p=sel(s,'listaPersonas',A.personas);if(!p)fallar('Seleccione una persona');if(!s.f.usuario)fallar('Ingrese un nombre de usuario');adm.agregarCritico(p.id,s.f.usuario);code('VentanaSocios>>registrarCritico',`admin agregarCritico: ${p.id} NombreUsuario: ${st(s.f.usuario)}.`)},
+    cambiarUsuario(s){const c=sel(s,'listaCriticos',A.criticos);if(!c)fallar('Seleccione un critico');if(!s.f.usuario)fallar('Ingrese el nuevo nombre de usuario');c.usuario=s.f.usuario;code('VentanaSocios>>cambiarUsuario',`admin cambiarUsuarioCritico: ${c.id} NuevoNombre: ${st(s.f.usuario)}.`)},
+    eliminarCritico(s){const c=sel(s,'listaCriticos',A.criticos);if(!c)fallar('Seleccione un critico');A.criticos.splice(A.criticos.indexOf(c),1);s.l.listaCriticos.sel=-1;code('VentanaSocios>>eliminarCritico',`admin eliminarCritico: ${c.id}.`)}
+  }},
+
+obras:{tab:'Peliculas / Obras',cls:'VentanaObras',label:'Peliculas y obras de teatro',w:820,h:560,
+  comps:[L(20,20,'Titulo'),I([130,18,380,40],'titulo'),L(20,50,'Descripcion'),I([130,48,380,70],'descripcion'),L(20,80,'Duracion (min)'),I([130,78,200,100],'duracion'),L(20,110,'Clasificacion'),I([130,108,200,130],'clasificacion'),L(20,140,'Elenco (a, b)'),I([130,138,380,160],'elenco'),L(20,170,'Director(es)'),I([130,168,380,190],'director'),
+    L(20,200,'Tipo'),RB(130,198,'Pelicula','tipo','pelicula'),RB(230,198,'Obra de teatro','tipo','teatro'),
+    B([20,235,130,263],'Agregar','agregar'),B([135,235,255,263],'Poner en cartel','ponerEnCartel'),B([260,235,380,263],'Sacar de cartel','sacarDeCartel'),
+    GB([10,275,390,540],'Nueva critica (solo peliculas)'),L(20,298,'Critico'),LS([20,318,380,400],'listaCriticos'),L(20,412,'Puntaje (1-10)'),I([130,410,200,432],'puntaje'),L(20,442,'Resenia'),I([130,440,380,462],'resenia'),B([20,475,195,503],'Agregar critica','agregarCritica'),B([205,475,380,503],'Eliminar critica','eliminarCritica'),
+    L(400,8,'Peliculas y obras'),LS([400,30,800,300],'listaObras'),L(400,310,'Criticas de la seleccionada'),LS([400,332,800,540],'listaCriticas')],
+  init(s){Object.assign(s.f,{titulo:'',descripcion:'',duracion:'90',clasificacion:'ATP',elenco:'',director:'',tipo:'pelicula',puntaje:'8',resenia:''})},
+  refresh(s){s.l.listaObras.items=A.obras.map(tObra);s.l.listaCriticos.items=A.criticos.map(tCri);const o=sel(s,'listaObras',A.obras);s.criticas=o?A.criticas.filter(c=>c.idPelicula===o.id):[];s.l.listaCriticas.items=s.criticas.map(c=>{const cr=A.criticos.find(x=>x.id===c.idCritico);return `${c.puntaje}/10 - ${cr?cr.usuario:'?'}: ${c.resenia}`})},
+  actions:{
+    agregar(s){if(!s.f.titulo)fallar('Ingrese el titulo');const dur=parseN(s.f.duracion),el=sep(s.f.elenco),di=sep(s.f.director),peli=s.f.tipo==='pelicula';adm.agregarObra(peli?'pelicula':'obra de teatro',s.f.titulo,s.f.descripcion,dur,s.f.clasificacion,el,di);
+      code('VentanaObras>>agregar',`admin ${peli?'agregarPeliculaTitulo':'agregarObraTeatroTitulo'}: ${st(s.f.titulo)}`,`    descripcion: ${st(s.f.descripcion)} duracion: ${dur} clasificacion: ${st(s.f.clasificacion)}`,`    elenco: (self separarPorComas: ${st(s.f.elenco)})`,`    director: (self separarPorComas: ${st(s.f.director)}).`)},
+    ponerEnCartel(s){const o=sel(s,'listaObras',A.obras);if(!o)fallar('Seleccione una obra');o.enCartel=true;code('VentanaObras>>ponerEnCartel',`admin ponerEnCartelera: ${o.id}.`)},
+    sacarDeCartel(s){const o=sel(s,'listaObras',A.obras);if(!o)fallar('Seleccione una obra');o.enCartel=false;code('VentanaObras>>sacarDeCartel',`admin sacarDeCartelera: ${o.id}.`)},
+    agregarCritica(s){const o=sel(s,'listaObras',A.obras),c=sel(s,'listaCriticos',A.criticos);if(!o)fallar('Seleccione una pelicula de la lista');if(o.tipo!=='pelicula')fallar('Solo las peliculas pueden recibir criticas');if(!c)fallar('Seleccione el critico');const p=parseN(s.f.puntaje);if(p<1||p>10)fallar('El puntaje debe estar entre 1 y 10');adm.nuevaCritica(o.id,c.id,s.f.resenia,p);code('VentanaObras>>agregarCritica',`admin nuevaCriticaPara: ${o.id} De: ${c.id} resenia: ${st(s.f.resenia)} puntaje: ${p}.`)},
+    eliminarCritica(s){const c=sel(s,'listaCriticas',s.criticas||[]);if(!c)fallar('Seleccione una critica');A.criticas.splice(A.criticas.indexOf(c),1);s.l.listaCriticas.sel=-1;code('VentanaObras>>eliminarCritica',`admin eliminarCritica: ${c.id}.`)}
+  }},
+
+salas:{tab:'Salas',cls:'VentanaSalas',label:'Salas',w:720,h:480,
+  comps:[L(20,20,'Nombre'),I([120,18,300,40],'nombre'),CK(20,50,'Permite peliculas','permitePeliculas'),CK(20,75,'Permite teatro','permiteTeatro'),L(20,107,'Filas'),I([120,105,180,127],'filas'),L(20,137,'Butacas x fila'),I([120,135,180,157],'columnas'),
+    B([20,172,155,200],'Agregar sala','agregar'),B([165,172,300,200],'Eliminar sala','eliminar'),L(20,212,'Salas'),LS([20,234,300,460],'listaSalas'),L(320,8,'Plano de la sala seleccionada'),TX([320,30,700,460],'plano',true)],
+  init(s){Object.assign(s.f,{nombre:'',permitePeliculas:true,permiteTeatro:false,filas:'5',columnas:'8',plano:''})},
+  refresh(s){s.l.listaSalas.items=A.salas.map(tSala);const x=sel(s,'listaSalas',A.salas);s.f.plano=x?plano(x,[]):''},
+  actions:{
+    agregar(s){if(!s.f.nombre)fallar('Ingrese el nombre de la sala');if(!s.f.permitePeliculas&&!s.f.permiteTeatro)fallar('La sala debe permitir peliculas, teatro o ambos');const f=parseN(s.f.filas),c=parseN(s.f.columnas);if(f<1||f>26)fallar('Filas: entre 1 y 26 (una letra por fila)');if(c<1)fallar('Ingrese la cantidad de butacas por fila');adm.agregarSala(s.f.nombre,s.f.permitePeliculas,s.f.permiteTeatro,f,c);
+      code('VentanaSalas>>agregar',`admin agregarSalaNombre: ${st(s.f.nombre)}`,`    permitePeliculas: ${s.f.permitePeliculas} permteTeatro: ${s.f.permiteTeatro}`,`    filasButacas: ${f} columnasButacas: ${c}.`)},
+    eliminar(s){const x=sel(s,'listaSalas',A.salas);if(!x)fallar('Seleccione una sala');if(A.funciones.some(f=>f.idSala===x.id))fallar('No se puede eliminar: la sala tiene funciones programadas');A.salas.splice(A.salas.indexOf(x),1);s.l.listaSalas.sel=-1;code('VentanaSalas>>eliminar',`admin eliminarSala: ${x.id}.`)}
+  }},
+
+funciones:{tab:'Funciones',cls:'VentanaFunciones',label:'Funciones',w:820,h:560,
+  comps:[L(20,8,'Obras EN CARTEL'),LS([20,30,300,200],'listaObras'),L(320,8,'Salas'),LS([320,30,600,200],'listaSalas'),L(620,32,'Fecha'),I([680,30,800,52],'fecha'),L(620,62,'Hora'),I([680,60,800,82],'hora'),L(620,92,'Precio $'),I([680,90,800,112],'precio'),
+    B([620,128,800,156],'Verificar sala libre','verificarSala'),B([620,162,800,190],'Agregar funcion','agregarFuncion'),L(20,215,'Funciones programadas'),LS([20,237,800,500],'listaFunciones'),B([20,510,200,538],'Eliminar funcion','eliminarFuncion')],
+  init(s){Object.assign(s.f,{fecha:fmtD(hoy()),hora:'20:00',precio:'5000'})},
+  refresh(s){s.obras=A.obras.filter(o=>o.enCartel);s.l.listaObras.items=s.obras.map(tObra);s.l.listaSalas.items=A.salas.map(tSala);s.l.listaFunciones.items=A.funciones.map(tFun)},
+  actions:{
+    async verificarSala(s){const [o,x,ini,fin]=datosFuncion(s);const libre=salaLibre(x.id,ini,fin);code('VentanaFunciones>>verificarSala',`inicio := Timestamp fromDate: fecha value andTime: hora value.`,`fin := inicio addSeconds: ${o.duracion} * 60.`,`admin salaLibre: ${x.id} fechaHoraInicio: inicio fechaHoraFinal: fin.   "-> ${libre}"`);await warn(libre?'La sala esta LIBRE en ese horario':'La sala esta OCUPADA en ese horario')},
+    agregarFuncion(s){const [o,x,ini,fin]=datosFuncion(s);const admite=(x.peliculas&&o.tipo==='pelicula')||(x.teatro&&o.tipo==='obra de teatro');if(!admite)fallar('Esa sala no admite este tipo de obra');if(!salaLibre(x.id,ini,fin))fallar('La sala no esta libre en ese horario');const p=parseN(s.f.precio);adm.agregarFuncion(o.id,x.id,parseD(s.f.fecha),s.f.hora,p);
+      code('VentanaFunciones>>agregarFuncion',`(sala admiteObra: ${o.id} listaObras: admin obras) ifFalse: [^Dialog warn: ...].`,`admin agregarFuncionObra: ${o.id} sala: ${x.id} fecha: fecha value horaInicio: hora value precioEntrada: ${p}.`)},
+    eliminarFuncion(s){const f=sel(s,'listaFunciones',A.funciones);if(!f)fallar('Seleccione una funcion');A.funciones.splice(A.funciones.indexOf(f),1);s.l.listaFunciones.sel=-1;code('VentanaFunciones>>eliminarFuncion',`admin eliminarFuncion: ${f.id}.`)}
+  }},
+
+reservas:{tab:'Reservas y ventas',cls:'VentanaReservasVentas',label:'Reservas y ventas de entradas',w:900,h:600,
+  comps:[L(20,8,'Funciones'),LS([20,30,440,170],'listaFunciones'),L(20,180,'Butacas libres (Ctrl+click)'),LS([20,202,170,560],'listaButacas',true),L(180,180,'Plano'),TX([180,202,440,560],'plano',true),
+    L(460,8,'Socios'),LS([460,30,880,170],'listaSocios'),L(460,180,'Medio de pago'),RB(460,202,'Efectivo','medioPago','efectivo'),RB(560,202,'Tarjeta','medioPago','tarjeta'),RB(660,202,'Transferencia','medioPago','transferencia'),
+    B([460,235,665,263],'Reservar (socio)','reservar'),B([675,235,880,263],'Vender a socio (-20%)','venderSocio'),B([460,268,665,296],'Vender (publico general)','venderGeneral'),
+    L(460,310,'Reservas'),LS([460,332,880,520],'listaReservas'),B([460,530,665,558],'Cancelar reserva','cancelarReserva'),B([675,530,880,558],'Pagar reserva','pagarReserva')],
+  init(s){Object.assign(s.f,{medioPago:'efectivo',plano:''})},
+  refresh(s){s.l.listaFunciones.items=A.funciones.map(tFun);s.l.listaSocios.items=A.socios.map(tSoc);s.l.listaReservas.items=A.reservas.map(tRes);const f=sel(s,'listaFunciones',A.funciones),sala=f&&salaDe(f);
+    if(!sala){s.butacas=[];s.l.listaButacas.items=[];s.l.listaButacas.sel=new Set();s.f.plano='';return}
+    const oc=ocupadasDe(f);const nuevas=sala.butacas.filter(b=>!oc.includes(b));if(s.butacas&&(s.butacas.length!==nuevas.length||s.butacas.some((b,i)=>b!==nuevas[i])))s.l.listaButacas.sel=new Set();s.butacas=nuevas;s.l.listaButacas.items=s.butacas.map(tBut);s.f.plano=plano(sala,oc)},
+  onSel:{listaFunciones(s){s.l.listaButacas.sel=new Set()}},
+  actions:{
+    reservar(s){const [f,b]=funcYButacas(s),so=socioOk(s);A.reservas.push({id:A.reservas.length+1,idSocio:so.id,idFuncion:f.id,butacas:b,fechaReserva:hoy(),fechaCancelacion:null});s.l.listaButacas.sel=new Set();
+      code('VentanaReservasVentas>>reservar',`admin agregarReservaFuncion: ${f.id}`,`    butacasReservadas: self butacasElegidas   "${b.map(tBut).join(', ')}"`,`    socio: ${so.id}.`)},
+    venderSocio(s){const [f,b]=funcYButacas(s),so=socioOk(s);const m=f.precio*b.length*0.8;A.ventas.push({id:A.ventas.length+1,idReserva:null,idFuncion:f.id,fecha:hoy(),monto:m,medioPago:s.f.medioPago,butacas:b,idSocio:so.id});s.l.listaButacas.sel=new Set();
+      code('VentanaReservasVentas>>venderSocio',`admin agregarVentaDirectaSocio: ${so.id} Funcion: ${f.id}`,`    butacasVenta: self butacasElegidas medioPago: ${st(s.f.medioPago)}.   "monto con 20% desc: $${m}"`)},
+    venderGeneral(s){const [f,b]=funcYButacas(s);const m=f.precio*b.length;A.ventas.push({id:A.ventas.length+1,idReserva:null,idFuncion:f.id,fecha:hoy(),monto:m,medioPago:s.f.medioPago,butacas:b});s.l.listaButacas.sel=new Set();
+      code('VentanaReservasVentas>>venderGeneral',`admin agregarVentaDirectaGeneralFuncion: ${f.id}`,`    butacasVenta: self butacasElegidas medioPago: ${st(s.f.medioPago)}.   "monto: $${m}"`)},
+    async cancelarReserva(s){const r=sel(s,'listaReservas',A.reservas);if(!r)fallar('Seleccione una reserva');if(r.fechaCancelacion)fallar('La reserva ya estaba cancelada');if(confirmada(r))fallar('La reserva ya fue pagada');const f=A.funciones.find(f=>f.id===r.idFuncion);const ok=(funcStart(f)-new Date())>=864e5;if(ok)r.fechaCancelacion=hoy();
+      code('VentanaReservasVentas>>cancelarReserva',`admin cancelarReserva: ${r.id}.   "-> ${ok}"`);await warn(ok?'Reserva cancelada sin costo':'No se puede cancelar: faltan menos de 24 hs. El socio debe pagarla.')},
+    pagarReserva(s){const r=sel(s,'listaReservas',A.reservas);if(!r)fallar('Seleccione una reserva');if(r.fechaCancelacion)fallar('La reserva esta cancelada');if(confirmada(r))fallar('La reserva ya fue pagada');const f=A.funciones.find(f=>f.id===r.idFuncion);const m=f.precio*r.butacas.length*0.8;A.ventas.push({id:A.ventas.length+1,idReserva:r.id,idFuncion:f.id,fecha:hoy(),monto:m,medioPago:s.f.medioPago,butacas:r.butacas});
+      code('VentanaReservasVentas>>pagarReserva',`admin agregarVentaReserva: ${r.id} medioPago: ${st(s.f.medioPago)}.   "monto: $${m}"`)}
+  }},
+
+consultas:{tab:'Consultas',cls:'VentanaConsultas',label:'Consultas y listados',w:900,h:580,
+  comps:[L(20,20,'Fecha / desde'),I([130,18,300,40],'fechaDesde'),L(20,50,'Hasta'),I([130,48,300,70],'fechaHasta'),L(20,80,'Cantidad (top)'),I([130,78,300,100],'cantidad'),L(20,110,'Director / actor'),I([130,108,300,130],'texto'),L(20,140,'Obra'),LS([20,160,300,290],'listaObras'),
+    B([20,305,158,333],'Funciones x fecha','funcionesPorFecha'),B([162,305,300,333],'Funciones x obra','funcionesPorObra'),B([20,338,158,366],'Reservas impagas','sociosDeudores'),B([162,338,300,366],'Mejores criticas','mejoresEnCartel'),B([20,371,158,399],'Ingresos','ingresos'),B([162,371,300,399],'Ocupacion promedio','ocupacion'),B([20,404,158,432],'Agotadas (futuras)','agotadasFuturas'),B([162,404,300,432],'Agotadas (todas)','agotadasHistorico'),
+    L(20,445,'Consultas extra'),B([20,467,158,495],'Top recaudacion','topRecaudacion'),B([162,467,300,495],'Top peliculas','topPeliculas'),B([20,500,158,528],'Obras del director','obrasDirector'),B([162,500,300,528],'Obras del actor','obrasActor'),B([20,533,158,561],'Recaudacion obra','recaudacion'),
+    L(320,8,'Resultado'),TX([320,30,880,561],'salida',true)],
+  init(s){Object.assign(s.f,{fechaDesde:fmtD(addDays(hoy(),-30)),fechaHasta:fmtD(addDays(hoy(),30)),cantidad:'5',texto:'',salida:''})},
+  refresh(s){s.l.listaObras.items=A.obras.map(tObra)},
+  actions:{
+    funcionesPorFecha(s){const d=parseD(s.f.fechaDesde);s.f.salida=lineas(A.funciones.filter(f=>sameDay(f.fecha,d)).map(tFun));code('VentanaConsultas>>funcionesPorFecha','admin funcionesPorFecha: fechaDesde value')},
+    funcionesPorObra(s){const o=obraSel(s);s.f.salida=lineas(A.funciones.filter(f=>f.idObra===o.id).map(tFun));code('VentanaConsultas>>funcionesPorObra',`admin funcionesPorObra: ${o.id}`)},
+    sociosDeudores(s){const ids=[...new Set(A.reservas.filter(r=>!r.fechaCancelacion&&!confirmada(r)).map(r=>r.idSocio))];s.f.salida=lineas(ids.map(i=>A.socios.find(x=>x.id===i)).filter(Boolean).map(tSoc));code('VentanaConsultas>>sociosDeudores','admin sociosDeudores')},
+    mejoresEnCartel(s){const r=A.obras.filter(o=>o.tipo==='pelicula'&&o.enCartel&&promedio(o.id)>=7).map(o=>`${o.titulo}: ${promedio(o.id).toFixed(1)}`);s.f.salida='Peliculas en cartel con puntaje >= 7:\n\n'+lineas(r);code('VentanaConsultas>>mejoresEnCartel','admin mejoresPeliculasEnCartelera')},
+    ingresos(s){const d=parseD(s.f.fechaDesde),h=parseD(s.f.fechaHasta),v=A.ventas.filter(x=>x.fecha>=d&&x.fecha<=h);const sum=a=>a.reduce((t,x)=>t+x.monto,0);const dir=v.filter(x=>x.idReserva==null),res=v.filter(x=>x.idReserva!=null);const porSocio={};res.forEach(x=>{const r=A.reservas.find(r=>r.id===x.idReserva);porSocio[r.idSocio]=(porSocio[r.idSocio]||0)+x.monto});
+      s.f.salida=`Ingresos del ${s.f.fechaDesde} al ${s.f.fechaHasta}\n\nTOTAL: $${sum(v)}\n\nVentas directas: $${sum(dir)}\nVentas por reserva (socios): $${sum(res)}\n\nDetalle por socio:\n`+Object.entries(porSocio).map(([k,m])=>`   Socio ${k}: $${m}`).join('\n');
+      code('VentanaConsultas>>ingresos','admin resumenIngresosTotalesEntre: desde Y: hasta','admin resumenIngresosPorTipoVentaEntre: desde Y: hasta','admin resumenIngresosReservasPorSocioEntre: desde Y: hasta')},
+    ocupacion(s){const o=obraSel(s);const fs=A.funciones.filter(f=>f.idObra===o.id&&f.fecha<=hoy());if(!fs.length)fallar('La obra no tiene funciones pasadas (division por cero en ocupacionPromedioDe:)');const p=fs.reduce((a,f)=>a+ocupadasDe(f).length/salaDe(f).butacas.length,0)/fs.length;s.f.salida=`Ocupacion promedio de ${o.titulo}: ${Math.round(p*100)} %`;code('VentanaConsultas>>ocupacion',`admin ocupacionPromedioDe: ${o.id}`)},
+    agotadasFuturas(s){s.f.salida=lineas(A.funciones.filter(f=>f.fecha>=hoy()&&ocupadasDe(f).length>=salaDe(f).butacas.length).map(tFun));code('VentanaConsultas>>agotadasFuturas','admin funcionesAgotadasFuturas')},
+    agotadasHistorico(s){s.f.salida=lineas(A.funciones.filter(f=>ocupadasDe(f).length>=salaDe(f).butacas.length).map(tFun));code('VentanaConsultas>>agotadasHistorico','admin funcionesAgotadasHistorico')},
+    topRecaudacion(s){const n=parseN(s.f.cantidad);s.f.salida=lineas([...A.obras].sort((a,b)=>recaudacion(b.id)-recaudacion(a.id)).slice(0,n).map(o=>`${o.titulo}: $${recaudacion(o.id)}`));code('VentanaConsultas>>topRecaudacion',`admin mejoresObrasRecaudacion: ${n}`)},
+    topPeliculas(s){const n=parseN(s.f.cantidad);s.f.salida=lineas(A.obras.filter(o=>o.tipo==='pelicula').sort((a,b)=>promedio(b.id)-promedio(a.id)).slice(0,n).map(o=>`${o.titulo}: ${promedio(o.id).toFixed(1)}`));code('VentanaConsultas>>topPeliculas',`admin mejoresPeliculasCantidad: ${n}`)},
+    obrasDirector(s){s.f.salida=lineas(A.obras.filter(o=>o.director.includes(s.f.texto)).map(tObra));code('VentanaConsultas>>obrasDirector',`admin listaObrasDirector: ${st(s.f.texto)}`)},
+    obrasActor(s){s.f.salida=lineas(A.obras.filter(o=>o.elenco.includes(s.f.texto)).map(tObra));code('VentanaConsultas>>obrasActor',`admin listaObrasActor: ${st(s.f.texto)}`)},
+    recaudacion(s){const o=obraSel(s);s.f.salida=`Recaudacion de ${o.titulo}: $${recaudacion(o.id)}`;code('VentanaConsultas>>recaudacion',`admin recaudacionObra: ${o.id}`)}
+  }}
+};
+
+/* helpers de acciones */
+function campos(s){return{nombre:s.f.nombre,dni:s.f.dni===''?null:parseN(s.f.dni),fechaNacimiento:s.f.fechaNacimiento?parseD(s.f.fechaNacimiento):null,sexo:s.f.sexo,domicilio:s.f.domicilio,email:s.f.email,celular:s.f.celular}}
+const sep=t=>String(t||'').split(',').map(x=>x.trim()).filter(Boolean);
+function datosFuncion(s){const o=sel(s,'listaObras',s.obras||[]),x=sel(s,'listaSalas',A.salas);if(!o||!x)fallar('Seleccione una obra y una sala');const d=parseD(s.f.fecha);const m=String(s.f.hora).match(/^(\d{1,2}):(\d{2})$/);if(!m)fallar('Hora invalida (use hh:mm)');const ini=new Date(d);ini.setHours(+m[1],+m[2]);return[o,x,ini,new Date(ini.getTime()+o.duracion*60000)]}
+function funcYButacas(s){const f=sel(s,'listaFunciones',A.funciones);if(!f)fallar('Seleccione una funcion');const b=[...s.l.listaButacas.sel].sort((a,b)=>a-b).map(i=>s.butacas[i]);if(!b.length)fallar('Seleccione al menos una butaca');return[f,b]}
+function socioOk(s){const so=sel(s,'listaSocios',A.socios);if(!so)fallar('Seleccione un socio');if(!so.activo)fallar('El socio esta inactivo');return so}
+function obraSel(s){const o=sel(s,'listaObras',A.obras);if(!o)fallar('Seleccione una obra');return o}
+
+/* ===================== Motor de renderizado ===================== */
+const S={};let actual='principal';
+for(const [k,w] of Object.entries(WIN)){const s={f:{},l:{}};w.comps.filter(c=>c.t==='list').forEach(c=>s.l[c.m]={items:[],sel:c.multi?new Set():-1});w.init(s);w.actions.__init=w.init;S[k]=s}
+function abrir(k){actual=k;render()}
+const tabs=document.getElementById('tabs'),stage=document.getElementById('stage');
+
+async function ejecutar(k,a){
+  const w=WIN[k],s=S[k];
+  try{await w.actions[a].call(w.actions,s)}
+  catch(e){await warn(e instanceof Aviso?e.message:'Ocurrio un error: '+e.message)}
+  render();
+}
+function pos(el,c){if(c.r){const[x1,y1,x2,y2]=c.r;Object.assign(el.style,{left:x1+'px',top:y1+'px',width:(x2-x1)+'px',height:(y2-y1)+'px'})}else Object.assign(el.style,{left:c.x+'px',top:c.y+'px'})}
+
+function render(){
+  tabs.innerHTML='';
+  for(const [k,w] of Object.entries(WIN)){const b=document.createElement('button');b.textContent=w.tab;if(k===actual)b.className='on';b.onclick=()=>abrir(k);tabs.append(b)}
+  const w=WIN[actual],s=S[actual];w.refresh(s);
+  stage.innerHTML='';
+  const win=document.createElement('div');win.className='win';
+  win.innerHTML=`<div class="titlebar"><span>${w.label}</span><small>${w.cls}</small></div>`;
+  const cv=document.createElement('div');cv.className='canvas';cv.style.width=w.w+'px';cv.style.height=w.h+'px';
+  for(const c of w.comps){
+    let el;
+    if(c.t==='label'){el=document.createElement('span');el.className='c lbl';el.textContent=c.text}
+    else if(c.t==='input'){el=document.createElement('input');el.className='c';el.value=s.f[c.m]??'';el.title='#'+c.m;el.oninput=()=>s.f[c.m]=el.value}
+    else if(c.t==='button'){el=document.createElement('button');el.className='c';el.textContent=c.label;el.title='#'+c.a;el.onclick=()=>ejecutar(actual,c.a)}
+    else if(c.t==='text'){el=document.createElement('textarea');el.className='c'+(c.fixed?' fixed':'');el.readOnly=true;el.value=s.f[c.m]??''}
+    else if(c.t==='group'){el=document.createElement('div');el.className='c grp';el.innerHTML=`<span>${c.label}</span>`}
+    else if(c.t==='check'||c.t==='radio'){el=document.createElement('label');el.className='c chk';const i=document.createElement('input');i.type=c.t==='check'?'checkbox':'radio';i.name=actual+c.m;
+      if(c.t==='check'){i.checked=!!s.f[c.m];i.onchange=()=>{s.f[c.m]=i.checked}}else{i.checked=s.f[c.m]===c.v;i.onchange=()=>{s.f[c.m]=c.v}}
+      el.append(i,document.createTextNode(c.label))}
+    else if(c.t==='list'){el=document.createElement('div');el.className='c list';el.title='#'+c.m;const L=s.l[c.m];
+      L.items.forEach((t,i)=>{const d=document.createElement('div');d.textContent=t;if(c.multi?L.sel.has(i):L.sel===i)d.className='sel';
+        d.onclick=()=>{if(c.multi){L.sel.has(i)?L.sel.delete(i):L.sel.add(i)}else{L.sel=i;w.onSel?.[c.m]?.(s)}render()};el.append(d)})}
+    pos(el,c);cv.append(el);
+  }
+  win.append(cv);stage.append(win);
+}
+render();
+code('Workspace','CineTeatroPrincipal open.');
+</script>
+</body>
+</html>
